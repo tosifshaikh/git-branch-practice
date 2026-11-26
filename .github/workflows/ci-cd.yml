@@ -1,0 +1,43 @@
+name: CI-CD Pipeline
+
+on: 
+  pull_request: 
+    branches: [sit,uat,main]
+  push:
+    branches: [sit,uat,main]
+
+concurrency:
+  group: ${{github.workflow}}-${{github.ref}}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Run checks
+        run: |
+          echo "Running tests for branch: ${{github.ref_name}}"
+          test -f README.md
+  deploy:
+    name: Deploy Environment
+    needs: test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: ${{github.ref_name == 'main' && 'prod' || github.ref_name}}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Deploy to ${{github.ref_name == 'main' && 'prod' || github.ref_name}} 
+        env:
+          TARGET_ENV: ${{github.ref_name == 'main' && 'prod' || github.ref_name}}
+          DEPLOY_SECRET: ${{ secrets.DEPLOY_SECRET }}
+        run: |
+          echo "Deploying commit ${{ github.sha }} to $TARGET_ENV..."
+          # Replace with your actual deployment script or SSH/cloud command:
+          # ./deploy.sh "$TARGET_ENV"
+          
+      
+    
